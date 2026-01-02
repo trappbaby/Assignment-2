@@ -96,23 +96,38 @@ const { post } = Astro.props;
 <script>
   import { supabase } from "../../lib/supabase";
 
-  const pathSegments = window.location.pathname.split('/');
-  const postId = pathSegments[pathSegments.length - 1]; 
+  // 1. GET ELEMENTS (With Types)
+  const deleteBtn = document.getElementById('delete-btn');
+  const adminSection = document.getElementById('admin-section');
+  const commentsList = document.getElementById('comments-list');
+  const commentForm = document.getElementById('comment-form') as HTMLFormElement | null;
+  const loginPrompt = document.getElementById('login-prompt');
+  const formContainer = document.getElementById('comment-form-container');
 
+  // 2. GET ID SAFELY
+  const buttonId = deleteBtn?.getAttribute('data-id');
+  const path = window.location.pathname.replace(/\/$/, ""); 
+  const urlId = path.split('/').pop();
+  const postId = buttonId || urlId;
+
+  console.log("Current Post ID:", postId); 
+
+  // --- REFRESH CONTENT ---
   async function refreshContent() {
+    if (!postId) return;
     const { data: post } = await supabase.from('posts').select('*').eq('id', postId).single();
 
     if (post) {
-      const titleEl = document.querySelector('h1') as HTMLHeadingElement;
+      const titleEl = document.querySelector('h1') as HTMLHeadingElement | null;
       if (titleEl) titleEl.innerText = post.title;
 
-      const contentEl = document.querySelector('.prose') as HTMLElement;
+      const contentEl = document.querySelector('.prose') as HTMLElement | null;
       if (contentEl) contentEl.innerText = post.content;
 
-      const catEl = document.querySelector('span.border-zinc-800') as HTMLElement; 
+      const catEl = document.querySelector('span.border-zinc-800') as HTMLElement | null; 
       if (catEl) catEl.innerText = post.category || 'General';
 
-      const imgEl = document.querySelector('img') as HTMLImageElement;
+      const imgEl = document.querySelector('img') as HTMLImageElement | null;
       if (imgEl && post.image_url) {
         imgEl.src = post.image_url;
       }
@@ -120,9 +135,7 @@ const { post } = Astro.props;
   }
   refreshContent();
 
-  const adminSection = document.getElementById('admin-section');
-  const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
-
+  // --- CHECK OWNER ---
   async function checkOwner() {
     const { data: { user } } = await supabase.auth.getUser();
     const postAuthorId = deleteBtn?.getAttribute('data-user-id');
@@ -133,16 +146,19 @@ const { post } = Astro.props;
   }
   checkOwner();
 
+  // --- DELETE LOGIC ---
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async () => {
       if (!confirm("Are you sure? This cannot be undone.")) return;
+
+      console.log("Deleting ID:", postId);
 
       deleteBtn.textContent = "DELETING...";
       const { error } = await supabase.from('posts').delete().eq('id', postId);
 
       if (!error) {
         const deletedPosts = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
-        deletedPosts.push(postId);
+        if (postId) deletedPosts.push(postId);
         localStorage.setItem('deletedPosts', JSON.stringify(deletedPosts));
         
         alert("Post deleted!");
@@ -154,12 +170,10 @@ const { post } = Astro.props;
     });
   }
 
-  const commentsList = document.getElementById('comments-list');
-  const commentForm = document.getElementById('comment-form') as HTMLFormElement;
-  const loginPrompt = document.getElementById('login-prompt');
-  const formContainer = document.getElementById('comment-form-container');
-
+  // --- COMMENTS LOGIC ---
   async function loadComments() {
+    if (!postId) return;
+    
     const { data: comments, error } = await supabase
       .from('comments')
       .select('*')
@@ -172,7 +186,7 @@ const { post } = Astro.props;
         return;
       }
 
-      commentsList.innerHTML = comments.map(c => `
+      commentsList.innerHTML = comments.map((c: any) => `
         <div class="border-b border-zinc-900 pb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-bold text-white uppercase tracking-widest">
@@ -203,11 +217,16 @@ const { post } = Astro.props;
     commentForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const contentEl = document.getElementById('comment-content') as HTMLTextAreaElement;
+      // FIXED: Specifically tell TS this is a textarea
+      const contentEl = document.getElementById('comment-content') as HTMLTextAreaElement | null;
+      
+      // Safety check if element wasn't found
+      if (!contentEl) return;
+      
       const content = contentEl.value;
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user || !content) return;
+      if (!user || !content || !postId) return;
 
       const btn = commentForm.querySelector('button');
       if(btn) { btn.textContent = "POSTING..."; btn.disabled = true; }
