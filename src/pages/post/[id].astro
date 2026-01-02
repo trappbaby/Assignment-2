@@ -1,0 +1,232 @@
+---
+export const prerender = true;
+import Layout from '../../layouts/layout.astro';
+import { supabase } from "../../lib/supabase";
+
+export async function getStaticPaths() {
+  const { data: posts } = await supabase.from('posts').select('*');
+  if (!posts) return [];
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+---
+
+<Layout title={`${post.title} | blogbyJosh`}>
+  <article class="min-h-screen bg-black text-white pt-24 pb-20">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+
+      <a href="/" class="inline-flex items-center text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-white transition-colors mb-12">
+        &larr; Back to Archive
+      </a>
+
+      <div class="flex items-center gap-4 text-xs font-mono uppercase tracking-widest text-zinc-500 mb-8">
+        <span class="border border-zinc-800 px-2 py-1 text-zinc-300">{post.category || 'General'}</span>
+        <span>{new Date(post.created_at).toLocaleDateString()}</span>
+      </div>
+
+      {post.image_url && (
+        <img 
+          src={post.image_url} 
+          alt={post.title} 
+          class="w-full h-auto object-cover max-h-[600px] mb-12 border border-zinc-800 p-2" 
+        />
+      )}
+
+      <h1 class="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none mb-12">
+        {post.title}
+      </h1>
+
+      <div class="prose prose-invert max-w-none font-serif text-lg leading-relaxed text-zinc-300 whitespace-pre-wrap">
+        {post.content}
+      </div>
+
+      <div id="admin-section" class="mt-20 pt-10 border-t border-zinc-900 hidden flex gap-4">
+        <a href={`/edit/${post.id}`} class="bg-zinc-800 text-zinc-300 border border-zinc-700 px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors text-center">
+          Edit Drop
+        </a>
+        <button 
+          id="delete-btn"
+          data-id={post.id}
+          data-user-id={post.user_id} 
+          class="bg-red-900/20 text-red-500 border border-red-900/50 px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-red-900/40 transition-colors"
+        >
+          Delete Drop
+        </button>
+      </div>
+
+      <div class="mt-24 border-t border-zinc-900 pt-12">
+        <h3 class="text-2xl font-black text-white uppercase mb-8">Discussion</h3>
+
+        <div id="login-prompt" class="mb-12 p-6 border border-zinc-800 bg-zinc-900/30 text-center hidden">
+          <p class="text-zinc-500 text-xs font-mono uppercase mb-4">Log in to join the discussion</p>
+          <a href="/login" class="text-white font-bold underline text-xs uppercase tracking-widest">Login Here</a>
+        </div>
+
+        <div id="comment-form-container" class="mb-12 hidden">
+          <form id="comment-form" class="flex flex-col gap-4">
+            <textarea 
+              id="comment-content" 
+              name="content" 
+              rows="3" 
+              placeholder="LEAVE A COMMENT..." 
+              class="w-full bg-zinc-900/50 border border-zinc-800 p-4 text-zinc-300 font-mono text-sm focus:outline-none focus:border-white transition-colors"
+              required
+            ></textarea>
+            <div class="flex justify-end">
+              <button type="submit" class="bg-white text-black px-6 py-2 text-xs font-bold uppercase tracking-widest hover:bg-zinc-200">
+                Post Comment
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div id="comments-list" class="space-y-8">
+          <p class="text-zinc-600 font-mono text-xs uppercase animate-pulse">Loading comments...</p>
+        </div>
+      </div>
+
+    </div>
+  </article>
+</Layout>
+
+<script>
+  import { supabase } from "../../lib/supabase";
+
+  const pathSegments = window.location.pathname.split('/');
+  const postId = pathSegments[pathSegments.length - 1]; 
+
+  async function refreshContent() {
+    const { data: post } = await supabase.from('posts').select('*').eq('id', postId).single();
+
+    if (post) {
+      const titleEl = document.querySelector('h1') as HTMLHeadingElement;
+      if (titleEl) titleEl.innerText = post.title;
+
+      const contentEl = document.querySelector('.prose') as HTMLElement;
+      if (contentEl) contentEl.innerText = post.content;
+
+      const catEl = document.querySelector('span.border-zinc-800') as HTMLElement; 
+      if (catEl) catEl.innerText = post.category || 'General';
+
+      const imgEl = document.querySelector('img') as HTMLImageElement;
+      if (imgEl && post.image_url) {
+        imgEl.src = post.image_url;
+      }
+    }
+  }
+  refreshContent();
+
+  const adminSection = document.getElementById('admin-section');
+  const deleteBtn = document.getElementById('delete-btn') as HTMLButtonElement;
+
+  async function checkOwner() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const postAuthorId = deleteBtn?.getAttribute('data-user-id');
+
+    if (user && postAuthorId && user.id === postAuthorId) {
+      adminSection?.classList.remove('hidden'); 
+    }
+  }
+  checkOwner();
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm("Are you sure? This cannot be undone.")) return;
+
+      deleteBtn.textContent = "DELETING...";
+      const { error } = await supabase.from('posts').delete().eq('id', postId);
+
+      if (!error) {
+        const deletedPosts = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+        deletedPosts.push(postId);
+        localStorage.setItem('deletedPosts', JSON.stringify(deletedPosts));
+        
+        alert("Post deleted!");
+        window.location.href = "/";
+      } else {
+        alert("Error: " + error.message);
+        deleteBtn.textContent = "DELETE DROP";
+      }
+    });
+  }
+
+  const commentsList = document.getElementById('comments-list');
+  const commentForm = document.getElementById('comment-form') as HTMLFormElement;
+  const loginPrompt = document.getElementById('login-prompt');
+  const formContainer = document.getElementById('comment-form-container');
+
+  async function loadComments() {
+    const { data: comments, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: false });
+
+    if (commentsList) {
+      if (!comments || comments.length === 0) {
+        commentsList.innerHTML = `<p class="text-zinc-700 font-mono text-xs uppercase">No comments yet. Be the first.</p>`;
+        return;
+      }
+
+      commentsList.innerHTML = comments.map(c => `
+        <div class="border-b border-zinc-900 pb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-white uppercase tracking-widest">
+              ${c.user_email ? c.user_email.split('@')[0] : 'Anonymous'}
+            </span>
+            <span class="text-[10px] font-mono text-zinc-600">
+              ${new Date(c.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          <p class="text-zinc-400 font-serif text-sm leading-relaxed">${c.content}</p>
+        </div>
+      `).join('');
+    }
+  }
+  
+  loadComments();
+
+  if (commentForm) {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        formContainer?.classList.remove('hidden');
+        loginPrompt?.classList.add('hidden');
+      } else {
+        loginPrompt?.classList.remove('hidden');
+      }
+    });
+
+    commentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const contentEl = document.getElementById('comment-content') as HTMLTextAreaElement;
+      const content = contentEl.value;
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user || !content) return;
+
+      const btn = commentForm.querySelector('button');
+      if(btn) { btn.textContent = "POSTING..."; btn.disabled = true; }
+
+      const { error } = await supabase.from('comments').insert([{
+        post_id: postId,
+        user_id: user.id,
+        user_email: user.email,
+        content: content
+      }]);
+
+      if (error) {
+        alert("Error: " + error.message);
+      } else {
+        contentEl.value = "";
+        await loadComments(); 
+      }
+
+      if(btn) { btn.textContent = "POST COMMENT"; btn.disabled = false; }
+    });
+  }
+</script>

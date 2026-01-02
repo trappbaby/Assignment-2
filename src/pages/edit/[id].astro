@@ -1,0 +1,87 @@
+---
+export const prerender = true;
+import Layout from '../../layouts/layout.astro';
+import { supabase } from "../../lib/supabase";
+
+export async function getStaticPaths() {
+  const { data: posts } = await supabase.from('posts').select('*');
+  
+  if (!posts) return [];
+
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+---
+
+<Layout title={`Edit ${post.title}`}>
+  <div class="max-w-2xl mx-auto px-4 py-20">
+    <a href={`/post/${post.id}`} class="text-xs font-bold text-zinc-500 uppercase mb-8 block">&larr; Cancel</a>
+    
+    <h1 class="text-3xl font-black text-white uppercase mb-8">Edit Drop</h1>
+
+    <form id="edit-form" class="flex flex-col gap-6">
+      <input type="hidden" name="id" value={post.id} />
+
+      <div>
+        <label class="block text-zinc-500 text-xs uppercase font-bold mb-2">Title</label>
+        <input type="text" name="title" value={post.title} class="w-full bg-zinc-900 border border-zinc-800 text-white p-4 focus:border-white outline-none" />
+      </div>
+
+      <div>
+        <label class="block text-zinc-500 text-xs uppercase font-bold mb-2">Category</label>
+        <select name="category" class="w-full bg-zinc-900 border border-zinc-800 text-white p-4">
+          <option value="News" selected={post.category === 'News'}>News</option>
+          <option value="Opinion" selected={post.category === 'Opinion'}>Opinion</option>
+          <option value="Guide" selected={post.category === 'Guide'}>Guide</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-zinc-500 text-xs uppercase font-bold mb-2">Image Link</label>
+        <input type="text" name="image_url" value={post.image_url || ''} class="w-full bg-zinc-900 border border-zinc-800 text-white p-4 focus:border-white outline-none" />
+      </div>
+
+      <div>
+        <label class="block text-zinc-500 text-xs uppercase font-bold mb-2">Content</label>
+        <textarea name="content" rows="10" class="w-full bg-zinc-900 border border-zinc-800 text-white p-4 focus:border-white outline-none font-serif">{post.content}</textarea>
+      </div>
+
+      <button type="submit" class="bg-white text-black font-bold uppercase py-4 tracking-widest hover:bg-zinc-200">Update Post</button>
+    </form>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from "../../lib/supabase";
+
+  const form = document.getElementById('edit-form') as HTMLFormElement;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const updates = Object.fromEntries(formData);
+    const id = updates.id;
+
+    const { error } = await supabase
+      .from('posts')
+      .update({
+        title: updates.title,
+        category: updates.category,
+        image_url: updates.image_url,
+        content: updates.content,
+      })
+      .eq('id', id);
+
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      alert("Saved! Rebuild site to see changes.");
+      window.location.href = `/post/${id}`;
+    }
+  });
+</script>

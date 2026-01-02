@@ -1,0 +1,138 @@
+---
+import Layout from '../layouts/layout.astro';
+---
+
+<Layout title="New Drop | blogbyJosh">
+  <div id="protected-content" class="max-w-4xl mx-auto pt-12 px-4 hidden">
+    
+    <div class="mb-12 border-b border-zinc-900 pb-8">
+      <h1 class="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter">Create New Drop</h1>
+    </div>
+
+    <div class="bg-zinc-900/30 border border-zinc-800 p-6 md:p-10 rounded-lg">
+      <form id="create-post-form" class="space-y-10">
+        
+        <div class="space-y-2">
+          <label for="title" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest">Headline</label>
+          <input 
+            type="text" 
+            id="title" 
+            name="title" 
+            placeholder="THE DEATH OF SKINNY JEANS"
+            class="w-full bg-black border border-zinc-800 p-4 text-white text-xl font-bold placeholder-zinc-700 focus:outline-none focus:border-white transition-colors uppercase"
+            required
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label for="image_url" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest">Cover Image URL</label>
+          <input 
+            type="url" 
+            id="image_url" 
+            name="image_url" 
+            placeholder="https://images.unsplash.com/photo-..."
+            class="w-full bg-black border border-zinc-800 p-4 text-zinc-300 font-mono text-sm focus:outline-none focus:border-white transition-colors"
+          />
+          <p class="text-[10px] text-zinc-600 uppercase">Paste a direct link to an image (Unsplash, Pinterest, etc.)</p>
+        </div>
+
+        <div class="space-y-2">
+          <label for="content" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest">Content</label>
+          <textarea 
+            id="content" 
+            name="content" 
+            rows="12" 
+            placeholder="Write your article content here..."
+            class="w-full bg-black border border-zinc-800 p-4 text-zinc-300 font-mono text-sm focus:outline-none focus:border-white transition-colors leading-relaxed"
+            required
+          ></textarea>
+        </div>
+
+        <div class="flex items-center justify-between pt-6 border-t border-zinc-800">
+          <a href="/" class="text-xs font-bold text-zinc-500 uppercase tracking-widest hover:text-white transition-colors">Cancel</a>
+          
+          <button 
+            type="submit"
+            id="publish-btn"
+            class="bg-white text-black px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors rounded-sm"
+          >
+            Publish Drop
+          </button>
+        </div>
+
+        <p id="form-message" class="text-xs font-mono text-center hidden uppercase tracking-widest"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="loading-check" class="text-center pt-24">
+    <p class="text-zinc-500 font-mono text-xs uppercase tracking-widest animate-pulse">Verifying Access...</p>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from "../lib/supabase";
+
+  const checkSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = "/login";
+    } else {
+      document.getElementById("protected-content")?.classList.remove("hidden");
+      document.getElementById("loading-check")?.classList.add("hidden");
+    }
+  };
+  checkSession();
+
+  const form = document.getElementById('create-post-form') as HTMLFormElement;
+  const messageEl = document.getElementById('form-message');
+  const submitBtn = document.getElementById('publish-btn') as HTMLButtonElement;
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!messageEl) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "UPLOADING...";
+      messageEl.classList.add('hidden');
+
+      const formData = new FormData(form);
+      const title = formData.get('title') as string;
+      const content = formData.get('content') as string;
+      const imageUrl = formData.get('image_url') as string;
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const { error } = await supabase
+        .from('posts')
+        .insert([
+          { 
+            title: title, 
+            content: content,
+            image_url: imageUrl, 
+            user_id: user.id,
+            category: 'General'
+          }
+        ]);
+
+      if (error) {
+        messageEl.textContent = "ERROR: " + error.message;
+        messageEl.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.textContent = "PUBLISH DROP";
+      } else {
+        messageEl.textContent = "DROP PUBLISHED SUCCESSFULLY.";
+        messageEl.classList.remove('hidden');
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      }
+    });
+  }
+</script>

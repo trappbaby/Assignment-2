@@ -1,0 +1,55 @@
+---
+---
+<header class="bg-black/90 backdrop-blur-md border-b border-zinc-900 sticky top-0 z-50">
+  <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    
+    <a href="/" class="group flex flex-col justify-center leading-none">
+      <span class="text-[10px] uppercase tracking-[0.3em] text-zinc-500 group-hover:text-zinc-300 transition-colors font-bold">
+        blog
+      </span>
+      <span class="text-xl font-black tracking-tighter text-white group-hover:text-zinc-200 transition-colors">
+        byJosh
+      </span>
+    </a>
+
+    <div class="flex items-center gap-6">
+      <a href="/" class="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Home</a>
+
+      <div id="nav-guest" class="flex items-center gap-6">
+        <a href="/login" class="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Login</a>
+        
+        <a href="/register" class="text-sm font-bold bg-white text-black px-5 py-2.5 rounded-full hover:bg-zinc-200 transition-all">
+          Sign Up
+        </a>
+      </div>
+
+      <div id="nav-user" class="hidden flex items-center gap-6">
+        <a href="/dashboard" class="text-sm font-bold bg-zinc-800 text-white border border-zinc-700 px-5 py-2.5 rounded-full hover:bg-zinc-700 hover:border-zinc-500 transition-all uppercase tracking-widest">
+          My Dashboard
+        </a>
+      </div>
+
+    </div>
+  </nav>
+</header>
+
+<script>
+
+  import { supabase } from "../lib/supabase"; 
+
+  async function updateHeader() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const guestNav = document.getElementById('nav-guest');
+    const userNav = document.getElementById('nav-user');
+
+    if (session) {
+      guestNav?.classList.add('hidden');
+      userNav?.classList.remove('hidden');
+    } else {
+      guestNav?.classList.remove('hidden');
+      userNav?.classList.add('hidden');
+    }
+  }
+  updateHeader();
+</script>

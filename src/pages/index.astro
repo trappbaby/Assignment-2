@@ -1,16 +1,164 @@
 ---
+import Layout from '../layouts/layout.astro';
+import { supabase } from "../lib/supabase";
 
+const { data: latestDrops, error } = await supabase
+  .from('posts')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(3);
+
+const archivePosts = [
+  {
+    title: "The Death of Skinny Jeans",
+    excerpt: "Why the oversized silhouette is here to stay.",
+    date: "02 Oct 2026",
+    category: "Opinion"
+  },
+  {
+    title: "Upcoming Drop: S/S 26 Leaks",
+    excerpt: "A first look at the collaboration everyone is talking about.",
+    date: "28 Sep 2026",
+    category: "News"
+  },
+  {
+    title: "Hunting for Japanese Denim",
+    excerpt: "A beginner's guide to sourcing authentic pieces from Tokyo.",
+    date: "15 Sep 2026",
+    category: "Guide"
+  },
+  {
+    title: "Digital Fashion Week Recap",
+    excerpt: "Are digital skins the future of streetwear? Probably not.",
+    date: "02 Sep 2026",
+    category: "Tech"
+  },
+  {
+    title: "Archive Sale Findings",
+    excerpt: "What we found in the bins at the Dover Street Market sale.",
+    date: "20 Aug 2026",
+    category: "Haul"
+  }
+];
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="blogbyJosh | Streetwear Archive">
+  
+  <section class="py-20 md:py-32 border-b border-zinc-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter uppercase leading-[0.9]">
+        blog<span class="text-zinc-600">byJosh</span>
+      </h1>
+      <p class="text-xl text-zinc-400 max-w-2xl leading-relaxed mb-10 font-serif italic">
+        "Fashion is the armor to survive the reality of everyday life." <br />
+        <span class="text-zinc-600 text-sm font-sans not-italic mt-2 block">EST. 2026 — WORLDWIDE</span>
+      </p>
+      
+      <div class="flex flex-wrap gap-4">
+        <a href="/create" class="bg-white text-black px-8 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors uppercase text-sm tracking-widest">
+          Start Writing
+        </a>
+        <a href="#feed" class="px-8 py-4 rounded-full font-bold text-zinc-400 border border-zinc-800 hover:border-white hover:text-white transition-all uppercase text-sm tracking-widest">
+          Read Latest
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="feed" class="py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="mb-16">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-xl font-bold text-white uppercase tracking-widest">Latest Drops</h2>
+        </div>
+
+        {latestDrops && latestDrops.length > 0 ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+            {latestDrops.map((post) => (
+              <a href={`/post/${post.id}`} class="group bg-black border border-zinc-800 p-6 hover:border-zinc-500 transition-all cursor-pointer flex flex-col h-full">
+                
+                <div class="flex justify-between items-center mb-6 text-[10px] font-mono uppercase tracking-widest">
+                  <span class="text-black bg-white px-2 py-1 font-bold">{post.category || 'General'}</span>
+                  <span class="text-zinc-500">{new Date(post.created_at).toLocaleDateString()}</span>
+                </div>
+                
+                <h3 class="text-3xl font-black text-white mb-4 group-hover:text-zinc-300 transition-colors leading-none uppercase">
+                  {post.title}
+                </h3>
+                
+                <p class="text-zinc-400 text-sm leading-relaxed mb-8 font-serif flex-grow">
+                  {post.content ? post.content.substring(0, 100) + "..." : "No preview."}
+                </p>
+
+                <div class="mt-auto pt-6 border-t border-zinc-900">
+                  <span class="text-xs font-bold text-zinc-500 uppercase tracking-widest group-hover:text-white transition-colors">
+                    Read Article &rarr;
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p class="text-zinc-600 font-mono text-sm uppercase">No database posts found.</p>
+        )}
+      </div>
+
+
+      <div>
+        <div class="flex items-center justify-between mb-8 border-t border-zinc-900 pt-12">
+          <h2 class="text-xl font-bold text-zinc-500 uppercase tracking-widest">The Archive</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+          {archivePosts.map((post) => (
+            <article class="group bg-black border border-zinc-900 p-6 hover:border-zinc-700 transition-all cursor-pointer flex flex-col h-full opacity-75 hover:opacity-100">
+              
+              <div class="flex justify-between items-center mb-6 text-[10px] font-mono uppercase tracking-widest">
+                <span class="text-zinc-400 border border-zinc-800 px-2 py-1">{post.category}</span>
+                <span class="text-zinc-600">{post.date}</span>
+              </div>
+              
+              <h3 class="text-3xl font-black text-zinc-300 mb-4 group-hover:text-white transition-colors leading-none uppercase">
+                {post.title}
+              </h3>
+              
+              <p class="text-zinc-500 text-sm leading-relaxed mb-8 font-serif flex-grow">
+                {post.excerpt}
+              </p>
+
+              <div class="mt-auto pt-6 border-t border-zinc-900">
+                <span class="text-xs font-bold text-zinc-700 uppercase tracking-widest group-hover:text-zinc-400 transition-colors">
+                  Read Archive &rarr;
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const deletedPosts = JSON.parse(localStorage.getItem('deletedPosts') || '[]');
+
+  if (deletedPosts.length > 0) {
+    console.log("Hiding deleted posts:", deletedPosts);
+
+    const allLinks = document.querySelectorAll('a[href^="/post/"]');
+
+    allLinks.forEach(link => {
+      const href = link.getAttribute('href'); 
+      const id = href?.split('/').pop();
+
+      if (id && deletedPosts.includes(id)) {
+        const card = link.closest('.group');
+        if (card) {
+          card.remove();
+        }
+      }
+    });
+  }
+</script>

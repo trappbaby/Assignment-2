@@ -1,0 +1,131 @@
+---
+import Layout from '../layouts/layout.astro';
+---
+
+<Layout title="Join the Cult | blogbyJosh">
+  <div class="flex flex-col justify-center min-h-[80vh] py-12 px-4 sm:px-6 lg:px-8">
+    
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <h2 class="text-center text-3xl font-black text-white uppercase tracking-tighter">
+        Initiation
+      </h2>
+      <p class="mt-2 text-center text-sm text-zinc-400 font-mono uppercase tracking-widest">
+        Create your identity
+      </p>
+    </div>
+
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="bg-zinc-900/50 border border-zinc-800 py-10 px-6 shadow-xl rounded-lg sm:px-12">
+        
+        <form class="space-y-6" id="register-form">
+          
+          <div>
+            <label for="email" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest">
+              Email Address
+            </label>
+            <div class="mt-2">
+              <input 
+                id="email" 
+                name="email" 
+                type="email" 
+                required 
+                class="block w-full bg-black border border-zinc-700 text-white py-3 px-4 focus:ring-0 focus:border-white transition-colors sm:text-sm placeholder-zinc-700"
+                placeholder="you@example.com"
+              >
+            </div>
+          </div>
+
+          <div>
+            <label for="password" class="block text-xs font-bold text-zinc-500 uppercase tracking-widest">
+              Set Password
+            </label>
+            <div class="mt-2">
+              <input 
+                id="password" 
+                name="password" 
+                type="password" 
+                required 
+                minlength="6"
+                class="block w-full bg-black border border-zinc-700 text-white py-3 px-4 focus:ring-0 focus:border-white transition-colors sm:text-sm placeholder-zinc-700"
+                placeholder="••••••••"
+              >
+            </div>
+          </div>
+
+          <div>
+            <button 
+              type="submit" 
+              id="register-btn"
+              class="w-full flex justify-center py-3 px-4 border border-transparent rounded-sm shadow-sm text-sm font-bold text-black bg-white hover:bg-zinc-200 focus:outline-none transition-all uppercase tracking-widest"
+            >
+              Join the Cult
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-6 text-center">
+          <p class="text-xs text-zinc-500 uppercase tracking-widest">
+            Already initiated? 
+            <a href="/login" class="font-bold text-white hover:underline decoration-zinc-500 underline-offset-4">
+              Sign In
+            </a>
+          </p>
+        </div>
+
+        <div id="message-area" class="mt-4 hidden p-4 bg-zinc-800 border border-zinc-700 rounded text-center">
+          <h3 id="message-title" class="text-sm font-bold text-white uppercase tracking-widest mb-1"></h3>
+          <p id="message-body" class="text-xs text-zinc-400 font-mono"></p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from "../lib/supabase";
+
+  const form = document.getElementById("register-form") as HTMLFormElement;
+  const msgArea = document.getElementById("message-area");
+  const msgTitle = document.getElementById("message-title");
+  const msgBody = document.getElementById("message-body");
+  const btn = document.getElementById("register-btn") as HTMLButtonElement;
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!msgArea || !msgTitle || !msgBody) return;
+      btn.disabled = true;
+      btn.textContent = "PROCESSING...";
+      msgArea.classList.add("hidden");
+      const formData = new FormData(form);
+      const email = formData.get("email")?.toString();
+      const password = formData.get("password")?.toString();
+
+      if (!email || !password) {
+        btn.disabled = false;
+        btn.textContent = "JOIN THE CULT";
+        return; 
+      }
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      msgArea.classList.remove("hidden");
+
+      if (error) {
+        msgTitle.textContent = "REGISTRATION FAILED";
+        msgTitle.className = "text-sm font-bold text-red-500 uppercase tracking-widest mb-1";
+        msgBody.textContent = error.message;
+        btn.disabled = false;
+        btn.textContent = "JOIN THE CULT";
+      } else {
+        msgTitle.textContent = "WELCOME TO THE ARCHIVE";
+        msgTitle.className = "text-sm font-bold text-green-500 uppercase tracking-widest mb-1";
+        msgBody.textContent = "Please check your email to confirm your account before logging in.";
+        btn.textContent = "CONFIRM EMAIL";
+      }
+    });
+  }
+</script>
