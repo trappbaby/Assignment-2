@@ -6,7 +6,7 @@ const { data: latestDrops, error } = await supabase
   .from('posts')
   .select('*')
   .order('created_at', { ascending: false })
-  .limit(3);
+  .limit(5);
 
 const archivePosts = [
   {

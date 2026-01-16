@@ -96,7 +96,6 @@ const { post } = Astro.props;
 <script>
   import { supabase } from "../../lib/supabase";
 
-  // 1. GET ELEMENTS (With Types)
   const deleteBtn = document.getElementById('delete-btn');
   const adminSection = document.getElementById('admin-section');
   const commentsList = document.getElementById('comments-list');
@@ -104,7 +103,6 @@ const { post } = Astro.props;
   const loginPrompt = document.getElementById('login-prompt');
   const formContainer = document.getElementById('comment-form-container');
 
-  // 2. GET ID SAFELY
   const buttonId = deleteBtn?.getAttribute('data-id');
   const path = window.location.pathname.replace(/\/$/, ""); 
   const urlId = path.split('/').pop();
@@ -112,7 +110,6 @@ const { post } = Astro.props;
 
   console.log("Current Post ID:", postId); 
 
-  // --- REFRESH CONTENT ---
   async function refreshContent() {
     if (!postId) return;
     const { data: post } = await supabase.from('posts').select('*').eq('id', postId).single();
@@ -135,7 +132,6 @@ const { post } = Astro.props;
   }
   refreshContent();
 
-  // --- CHECK OWNER ---
   async function checkOwner() {
     const { data: { user } } = await supabase.auth.getUser();
     const postAuthorId = deleteBtn?.getAttribute('data-user-id');
@@ -146,7 +142,6 @@ const { post } = Astro.props;
   }
   checkOwner();
 
-  // --- DELETE LOGIC ---
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async () => {
       if (!confirm("Are you sure? This cannot be undone.")) return;
@@ -170,7 +165,6 @@ const { post } = Astro.props;
     });
   }
 
-  // --- COMMENTS LOGIC ---
   async function loadComments() {
     if (!postId) return;
     
@@ -217,10 +211,9 @@ const { post } = Astro.props;
     commentForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // FIXED: Specifically tell TS this is a textarea
+      
       const contentEl = document.getElementById('comment-content') as HTMLTextAreaElement | null;
       
-      // Safety check if element wasn't found
       if (!contentEl) return;
       
       const content = contentEl.value;

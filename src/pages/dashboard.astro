@@ -76,7 +76,7 @@ import Layout from '../layouts/layout.astro';
     const { data: myPosts, error } = await supabase
       .from('posts')
       .select('*')
-      .eq('user_id', session.user.id) // Only get MY posts
+      .eq('user_id', session.user.id) 
       .order('created_at', { ascending: false });
 
     if (postsContainer) {
